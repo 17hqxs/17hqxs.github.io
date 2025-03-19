@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>保健プッシュ通知テスト</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/push.js/1.0.12/push.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 50px;
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            color: #555;
+        }
+        select {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>プッシュ通知のテスト</h1>
+    <p>以下のプルダウンメニューより時間を指定してください</p>
+
+    <select id="timehour">
+        <option value="0">0時</option>
+        <option value="1">1時</option>
+        <option value="2">2時</option>
+        <option value="3">3時</option>
+        <option value="4">4時</option>
+        <option value="5">5時</option>
+        <option value="6">6時</option>
+        <option value="7">7時</option>
+        <option value="8">8時</option>
+        <option value="18">18時</option>
+        <option value="19">19時</option>
+        <option value="20">20時</option>
+        <option value="21">21時</option>
+        <option value="22">22時</option>
+        <option value="23">23時</option>
+    </select>
+    <button onclick="setNotification()">時刻を設定する</button>
+
+    <script>
+        Push.Permission.request(onPermissionGranted, onPermissionDenied);
+
+        function onPermissionGranted() {
+            console.log("通知の許可がされました。");
+        }
+
+        function onPermissionDenied() {
+            alert("通知の許可が拒否されました。ブラウザの設定を確認してください。");
+        }
+
+        function setNotification() {
+            if (!Push.Permission.has()) {
+                alert("通知の権限がありません。ブラウザの設定で通知を許可してください。");
+                return;
+            }
+            
+            let selectedHour = document.getElementById("timehour").value;
+            let now = new Date();
+            let notifyTime = new Date();
+
+            notifyTime.setHours(selectedHour, 0, 0, 0);
+            if (notifyTime < now) {
+                notifyTime.setDate(notifyTime.getDate() + 1);
+            }
+
+            let delay = notifyTime - now;
+
+            alert(`通知を ${notifyTime.getHours()} 時に設定しました！`);
+
+            setTimeout(() => {
+                Push.create("保健委員会", {
+                    body: "健康調査の入力時間です！",
+                    icon: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjP8XRnuGEHSQap5BdytfGgv_5mgqB9kKeGGs0vCR8D4Y9bkNExGtsUMGAXZZfnivg9hqeesMYlIp4cObIbodKww1SsegSlh9C5s3x_vMpADJjdhAZQPt2eY21tZLtIN51bm1JaMgLkxDo/s800/kenkoushindan08_shinzou.png",
+                    timeout: 5000,
+                    onClick: function () {
+                        window.focus();
+                        this.close();
+                    }
+                });
+            }, delay);
+        }
+    </script>
+</body>
+</html>
