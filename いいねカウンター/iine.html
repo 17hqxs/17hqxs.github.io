@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>いいねカウンター | 文化祭</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #f5f5f5;
+      text-align: center;
+      overflow: hidden;
+    }
+    .container {
+      background-color: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 32px;
+      max-width: 500px;
+      width: 90%;
+      position: relative;
+      z-index: 1;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 24px;
+      font-size: 2rem;
+    }
+    .class-info {
+      font-size: 1.5rem;
+      color: #ff4081;
+      font-weight: bold;
+      margin-bottom: 16px;
+    }
+    .counter-display {
+      font-size: 8rem;
+      font-weight: bold;
+      color: #ff4081;
+      margin: 32px 0;
+      transition: all 0.3s;
+    }
+    .animated {
+      transform: scale(1.2);
+    }
+    .button-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .counter-button {
+      background-color: #ff4081;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      font-size: 1.5rem;
+      padding: 16px 32px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .counter-button:hover {
+      background-color: #e91e63;
+    }
+    .counter-button:active {
+      transform: scale(0.95);
+    }
+    .heart-icon {
+      font-size: 1.5rem;
+      display: inline-block;
+    }
+    .reset-button {
+      background-color: #9e9e9e;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      font-size: 1rem;
+      padding: 12px 24px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      margin-top: 16px;
+    }
+    .reset-button:hover {
+      background-color: #757575;
+    }
+    .heart {
+      position: absolute;
+      pointer-events: none;
+      animation: float 4s ease-in forwards;
+      z-index: 0;
+      font-size: 24px;
+      color: #ff4081;
+    }
+    @keyframes float {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(0.5);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-100vh) scale(1);
+      }
+    }
+    .setup-panel {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f0f0f0;
+      border-radius: 8px;
+    }
+    .setup-panel label {
+      display: block;
+      margin-bottom: 8px;
+    }
+    .setup-panel select, .setup-panel input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .setup-panel button {
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="setup" class="setup-panel">
+      <h2>カウンター設定</h2>
+      <label for="class-select">クラスを選択:</label>
+      <select id="class-select">
+        <option value="">選択してください</option>
+        <option value="1A">1年A組</option>
+        <option value="1B">1年B組</option>
+        <option value="1C">1年C組</option>
+        <option value="2A">2年A組</option>
+        <option value="2B">2年B組</option>
+        <option value="2C">2年C組</option>
+        <option value="3A">3年A組</option>
+        <option value="3B">3年B組</option>
+        <option value="3C">3年C組</option>
+      </select>
+      <label for="class-password">パスワード:</label>
+      <input type="password" id="class-password" placeholder="クラスのパスワードを入力">
+      <button id="setup-button">設定</button>
+    </div>
+
+    <div id="counter-ui" style="display: none;">
+      <h1>いいねカウンター</h1>
+      <div id="class-name" class="class-info">クラス名</div>
+      <div id="counter" class="counter-display">0</div>
+      <div class="button-container">
+        <button id="increment" class="counter-button">
+          <span class="heart-icon">♥</span>いいね！
+        </button>
+      </div>
+      <button id="reset" class="reset-button">リセット</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Firebaseの設定
+    // 注意: 実際に使用する場合は、自分のFirebase設定情報に置き換えてください
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // クラスごとのパスワード（実際の実装では、もっと安全な方法で管理してください）
+    const classPasswords = {
+      "1A": "pass1a",
+      "1B": "pass1b",
+      "1C": "pass1c",
+      "2A": "pass2a",
+      "2B": "pass2b",
+      "2C": "pass2c",
+      "3A": "pass3a",
+      "3B": "pass3b",
+      "3C": "pass3c"
+    };
+
+    // Firebase初期化
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const setupPanel = document.getElementById('setup');
+      const counterUI = document.getElementById('counter-ui');
+      const classSelect = document.getElementById('class-select');
+      const classPassword = document.getElementById('class-password');
+      const setupButton = document.getElementById('setup-button');
+      const classNameDisplay = document.getElementById('class-name');
+      const counterDisplay = document.getElementById('counter');
+      const incrementButton = document.getElementById('increment');
+      const resetButton = document.getElementById('reset');
+      
+      let selectedClass = '';
+      let count = 0;
+      let unsubscribe = null;
+
+      // ローカルストレージから前回の選択を復元
+      const savedClass = localStorage.getItem('selectedClass');
+      if (savedClass) {
+        classSelect.value = savedClass;
+      }
+
+      // セットアップボタンのクリックイベント
+      setupButton.addEventListener('click', () => {
+        selectedClass = classSelect.value;
+        const password = classPassword.value;
+        
+        if (!selectedClass) {
+          alert('クラスを選択してください');
+          return;
+        }
+        
+        if (password !== classPasswords[selectedClass]) {
+          alert('パスワードが正しくありません');
+          return;
+        }
+        
+        // クラス設定を保存
+        localStorage.setItem('selectedClass', selectedClass);
+        
+        // UIを切り替え
+        setupPanel.style.display = 'none';
+        counterUI.style.display = 'block';
+        classNameDisplay.textContent = getClassFullName(selectedClass);
+        
+        // Firestoreからデータを購読
+        setupFirestoreSubscription();
+      });
+
+      // クラスコードから表示名を取得
+      function getClassFullName(classCode) {
+        const classMap = {
+          "1A": "1年A組",
+          "1B": "1年B組",
+          "1C": "1年C組",
+          "2A": "2年A組",
+          "2B": "2年B組",
+          "2C": "2年C組",
+          "3A": "3年A組",
+          "3B": "3年B組",
+          "3C": "3年C組"
+        };
+        return classMap[classCode] || classCode;
+      }
+
+      // Firestoreからデータを購読する設定
+      function setupFirestoreSubscription() {
+        // 以前の購読があれば解除
+        if (unsubscribe) {
+          unsubscribe();
+        }
+
+        // Firestoreのドキュメント参照
+        const docRef = db.collection('likeCounts').doc(selectedClass);
+        
+        // リアルタイム更新のリスナーを設定
+        unsubscribe = docRef.onSnapshot((doc) => {
+          if (doc.exists) {
+            count = doc.data().count || 0;
+            counterDisplay.textContent = count;
+          } else {
+            // ドキュメントがなければ作成
+            docRef.set({
+              count: 0,
+              className: getClassFullName(selectedClass),
+              lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            count = 0;
+            counterDisplay.textContent = count;
+          }
+        }, (error) => {
+          console.error("Firestore監視エラー:", error);
+          alert("データの読み込みに失敗しました。ネットワーク接続を確認してください。");
+        });
+      }
+
+      // カウンターに一時的にアニメーション効果を適用する関数
+      function animateCounter() {
+        counterDisplay.classList.add('animated');
+        setTimeout(() => {
+          counterDisplay.classList.remove('animated');
+        }, 300);
+      }
+
+      // ハートエフェクトを作成する関数
+      function createHearts() {
+        const heartCount = Math.floor(Math.random() * 5) + 5; // 5〜10個のハート
+        const hearts = ['♥', '❤', '💖', '💕', '💓', '💗', '💘'];
+        
+        for (let i = 0; i < heartCount; i++) {
+          const heart = document.createElement('div');
+          heart.classList.add('heart');
+          heart.innerHTML = hearts[Math.floor(Math.random() * hearts.length)];
+          
+          // ランダムな位置とサイズ
+          heart.style.left = Math.random() * 100 + 'vw';
+          heart.style.top = (Math.random() * 20) + 80 + 'vh'; // 画面下部から浮かび上がるように
+          const size = Math.random() * 1.5 + 1;
+          heart.style.fontSize = size + 'rem';
+          
+          // ランダムなアニメーション持続時間
+          const duration = Math.random() * 3 + 2;
+          heart.style.animation = `float ${duration}s ease-in forwards`;
+          
+          document.body.appendChild(heart);
+          
+          // アニメーション終了時に要素を削除
+          setTimeout(() => {
+            heart.remove();
+          }, duration * 1000);
+        }
+      }
+
+      // 大きなハートバーストエフェクト（10の倍数のとき）
+      function createHeartBurst() {
+        const heartCount = 30; // 多めのハート
+        const hearts = ['♥', '❤', '💖', '💕', '💓', '💗', '💘'];
+        
+        for (let i = 0; i < heartCount; i++) {
+          const heart = document.createElement('div');
+          heart.classList.add('heart');
+          heart.innerHTML = hearts[Math.floor(Math.random() * hearts.length)];
+          
+          // カウンター周辺から発生するように
+          const x = 50 + (Math.random() * 40 - 20);
+          const y = 50 + (Math.random() * 20 - 10);
+          heart.style.left = x + 'vw';
+          heart.style.top = y + 'vh';
+          
+          const size = Math.random() * 2 + 1.5;
+          heart.style.fontSize = size + 'rem';
+          
+          // ランダムなアニメーション持続時間
+          const duration = Math.random() * 4 + 3;
+          heart.style.animation = `float ${duration}s ease-in forwards`;
+          
+          document.body.appendChild(heart);
+          
+          // アニメーション終了時に要素を削除
+          setTimeout(() => {
+            heart.remove();
+          }, duration * 1000);
+        }
+      }
+
+      // カウントを更新する関数
+      function updateCount(newCount) {
+        if (!selectedClass) return;
+        
+        const docRef = db.collection('likeCounts').doc(selectedClass);
+        return docRef.update({
+          count: newCount,
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(error => {
+          console.error("カウント更新エラー:", error);
+          alert("カウントの更新に失敗しました。ネットワーク接続を確認してください。");
+        });
+      }
+
+      // いいねボタンのクリックイベント
+      incrementButton.addEventListener('click', () => {
+        const newCount = count + 1;
+        updateCount(newCount).then(() => {
+          animateCounter();
+          createHearts();
+          
+          // 10の倍数のときに特別なエフェクト
+          if (newCount % 10 === 0) {
+            createHeartBurst();
+          }
+        });
+      });
+
+      // リセットボタンのクリックイベント
+      resetButton.addEventListener('click', () => {
+        if (confirm('いいねカウントをリセットしますか？')) {
+          updateCount(0);
+        }
+      });
+      
+      // スペースキーでいいね増加
+      document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && counterUI.style.display !== 'none') {
+          e.preventDefault(); // ページがスクロールしないように防止
+          const newCount = count + 1;
+          updateCount(newCount).then(() => {
+            animateCounter();
+            createHearts();
+            
+            // 10の倍数のときに特別なエフェクト
+            if (newCount % 10 === 0) {
+              createHeartBurst();
+            }
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
