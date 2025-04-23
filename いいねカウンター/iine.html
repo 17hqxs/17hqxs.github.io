@@ -16,6 +16,7 @@
       background-color: #f5f5f5;
       text-align: center;
       overflow: hidden;
+      position: relative; /* 追加：ハートの絶対位置指定のために必要 */
     }
     .container {
       background-color: white;
@@ -95,7 +96,7 @@
       position: absolute;
       pointer-events: none;
       animation: float 4s ease-in forwards;
-      z-index: 0;
+      z-index: 10; /* 修正：z-indexを上げてハートが前面に表示されるようにする */
       font-size: 24px;
       color: #ff4081;
     }
@@ -307,19 +308,28 @@
         }, 300);
       }
 
-      // ハートエフェクトを作成する関数
+      // ハートエフェクトを作成する関数（修正版）
       function createHearts() {
         const heartCount = Math.floor(Math.random() * 5) + 5; // 5〜10個のハート
         const hearts = ['♥', '❤', '💖', '💕', '💓', '💗', '💘'];
+        
+        // ボタンの位置を取得
+        const buttonRect = incrementButton.getBoundingClientRect();
+        const buttonCenterX = buttonRect.left + buttonRect.width / 2;
         
         for (let i = 0; i < heartCount; i++) {
           const heart = document.createElement('div');
           heart.classList.add('heart');
           heart.innerHTML = hearts[Math.floor(Math.random() * hearts.length)];
           
-          // ランダムな位置とサイズ
-          heart.style.left = Math.random() * 100 + 'vw';
-          heart.style.top = (Math.random() * 20) + 80 + 'vh'; // 画面下部から浮かび上がるように
+          // ボタン周辺から発生するようにランダムな位置を設定
+          const offsetX = (Math.random() - 0.5) * 100; // ボタンから左右に±50px
+          const posX = buttonCenterX + offsetX;
+          const posY = buttonRect.top; // ボタンの上部から
+          
+          heart.style.left = posX + 'px';
+          heart.style.top = posY + 'px';
+          
           const size = Math.random() * 1.5 + 1;
           heart.style.fontSize = size + 'rem';
           
@@ -336,21 +346,29 @@
         }
       }
 
-      // 大きなハートバーストエフェクト（10の倍数のとき）
+      // 大きなハートバーストエフェクト（10の倍数のとき）（修正版）
       function createHeartBurst() {
         const heartCount = 30; // 多めのハート
         const hearts = ['♥', '❤', '💖', '💕', '💓', '💗', '💘'];
+        
+        // カウンターの位置を取得して中心から放射状に広がるようにする
+        const counterRect = counterDisplay.getBoundingClientRect();
+        const centerX = counterRect.left + counterRect.width / 2;
+        const centerY = counterRect.top + counterRect.height / 2;
         
         for (let i = 0; i < heartCount; i++) {
           const heart = document.createElement('div');
           heart.classList.add('heart');
           heart.innerHTML = hearts[Math.floor(Math.random() * hearts.length)];
           
-          // カウンター周辺から発生するように
-          const x = 50 + (Math.random() * 40 - 20);
-          const y = 50 + (Math.random() * 20 - 10);
-          heart.style.left = x + 'vw';
-          heart.style.top = y + 'vh';
+          // 中心から放射状に配置
+          const angle = Math.random() * Math.PI * 2; // 0〜2πのランダムな角度
+          const distance = Math.random() * 20 + 10; // 10〜30pxの距離
+          const posX = centerX + Math.cos(angle) * distance;
+          const posY = centerY + Math.sin(angle) * distance;
+          
+          heart.style.left = posX + 'px';
+          heart.style.top = posY + 'px';
           
           const size = Math.random() * 2 + 1.5;
           heart.style.fontSize = size + 'rem';
