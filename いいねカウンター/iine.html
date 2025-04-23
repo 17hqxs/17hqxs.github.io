@@ -311,10 +311,15 @@
         }, 300);
       }
 
-      // ハートエフェクトを作成する関数（完全に刷新）
+      // ハートエフェクトを作成する関数
       function createHearts() {
         const heartCount = Math.floor(Math.random() * 5) + 5; // 5〜10個のハート
         const hearts = ['♥', '❤', '💖', '💕', '💓', '💗', '💘'];
+        
+        // いいねボタンの位置を取得
+        const buttonRect = incrementButton.getBoundingClientRect();
+        const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+        const buttonBottom = buttonRect.bottom;
         
         for (let i = 0; i < heartCount; i++) {
           // 新しいハート要素を作成
@@ -322,25 +327,27 @@
           heart.classList.add('heart');
           heart.textContent = hearts[Math.floor(Math.random() * hearts.length)];
           
-          // ランダムなサイズと初期位置を設定
+          // ランダムなサイズを設定
           const size = Math.random() * 2 + 1; // 1~3remのサイズ
           heart.style.fontSize = `${size}rem`;
           
-          // 画面下部のランダムな位置に配置
-          const startX = Math.random() * window.innerWidth;
-          const startY = window.innerHeight - 20; // 画面下部から少し上
+          // ボタン付近から発生するように配置
+          const offsetX = (Math.random() - 0.5) * buttonRect.width; // ボタンの幅を基準にずらす
+          const startX = buttonCenterX + offsetX;
+          const startY = buttonBottom - 10; // ボタンの少し上から
+          
           heart.style.left = `${startX}px`;
           heart.style.top = `${startY}px`;
           
           // ハートをDOMに追加
           heartsContainer.appendChild(heart);
           
-          // 個別のアニメーション設定
+          // アニメーションの設定
           const duration = Math.random() * 3 + 2; // 2~5秒
           const endX = startX + (Math.random() * 100 - 50); // 左右にランダムに移動
-          const endY = -100; // 画面上部より上に
+          const endY = startY - (Math.random() * 200 + 100); // 上方向に移動
           
-          // CSS アニメーションを使わず、JavaScriptで直接アニメーション
+          // JavaScript でアニメーション
           let startTime = null;
           
           function animateHeart(timestamp) {
@@ -359,7 +366,8 @@
             const opacity = progress > 0.7 ? 1 - (progress - 0.7) / 0.3 : 1;
             
             // 要素のスタイルを更新
-            heart.style.transform = `translate(${currentX - startX}px, ${currentY - startY}px) scale(${1 + progress * 0.5})`;
+            heart.style.left = `${currentX}px`;
+            heart.style.top = `${currentY}px`;
             heart.style.opacity = opacity.toString();
             
             if (progress < 1) {
@@ -375,14 +383,15 @@
         }
       }
 
-      // 大きなハートバーストエフェクト（10の倍数のとき）（刷新版）
+      // 大きなハートバーストエフェクト（10の倍数のとき）
       function createHeartBurst() {
         const heartCount = 30; // 多めのハート
         const hearts = ['♥', '❤', '💖', '💕', '💓', '💗', '💘'];
         
-        // 画面中央を基準に
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
+        // カウンターの位置を基準に
+        const counterRect = counterDisplay.getBoundingClientRect();
+        const centerX = counterRect.left + counterRect.width / 2;
+        const centerY = counterRect.top + counterRect.height / 2;
         
         for (let i = 0; i < heartCount; i++) {
           // 新しいハート要素を作成
@@ -394,7 +403,7 @@
           const size = Math.random() * 2.5 + 1.5; // 1.5~4remのサイズ
           heart.style.fontSize = `${size}rem`;
           
-          // 初期位置は中央
+          // 初期位置はカウンター中央
           heart.style.left = `${centerX}px`;
           heart.style.top = `${centerY}px`;
           
@@ -466,7 +475,7 @@
         const newCount = count + 1;
         updateCount(newCount).then(() => {
           animateCounter();
-          createHearts();
+          createHearts();  // いいねボタンを押した時にハートエフェクト表示
           
           // 10の倍数のときに特別なエフェクト
           if (newCount % 10 === 0) {
@@ -482,14 +491,6 @@
         }
       });
       
-      // テスト用：ページ読み込み時にハートエフェクトをテスト表示
-      setTimeout(() => {
-        createHearts();
-        setTimeout(() => {
-          createHeartBurst();
-        }, 1000);
-      }, 1000);
-      
       // スペースキーでいいね増加
       document.addEventListener('keydown', (e) => {
         if (e.code === 'Space' && counterUI.style.display !== 'none') {
@@ -497,7 +498,7 @@
           const newCount = count + 1;
           updateCount(newCount).then(() => {
             animateCounter();
-            createHearts();
+            createHearts();  // スペースキー押下時もハートエフェクト表示
             
             // 10の倍数のときに特別なエフェクト
             if (newCount % 10 === 0) {
